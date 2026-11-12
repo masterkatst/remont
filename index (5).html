@@ -1,0 +1,858 @@
+<title>Ремонт в кадре</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Cormorant+Garamond:wght@500;600;700&display=swap">
+<style>
+/* Layout: phone-sized customer app beside a "what this step proves" panel; partner cabinet as a second tab. */
+:root{
+  --bg:#F4F1EB; --surface:#FDFCF9; --surface-2:#ECE7DD; --ink:#1C1A16; --muted:#6B6558; --line:#DDD6C8;
+  --accent:#7A5C2E; --accent-ink:#FFFFFF; --accent-soft:#F1E9D8;
+  --warn:#8A5A12; --warn-soft:#F3E5C8; --good:#2F6B3F; --bad:#A63A2B;
+  --font-body:"Onest",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-display:"Cormorant Garamond","Playfair Display",Georgia,"Times New Roman",serif;
+  --shadow:0 1px 2px rgba(28,26,22,.06),0 10px 30px rgba(28,26,22,.08);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E0E0F; --surface:#171716; --surface-2:#201F1D; --ink:#EDE8DE; --muted:#A39B8B; --line:#2D2B27;
+    --accent:#C9A96A; --accent-ink:#17130B; --accent-soft:#2A2418;
+    --warn:#D9B063; --warn-soft:#2F2716; --good:#7FC08F; --bad:#E58B79;
+    --shadow:0 1px 2px rgba(0,0,0,.5),0 10px 30px rgba(0,0,0,.45); color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E0E0F; --surface:#171716; --surface-2:#201F1D; --ink:#EDE8DE; --muted:#A39B8B; --line:#2D2B27;
+  --accent:#C9A96A; --accent-ink:#17130B; --accent-soft:#2A2418;
+  --warn:#D9B063; --warn-soft:#2F2716; --good:#7FC08F; --bad:#E58B79;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 10px 30px rgba(0,0,0,.45); color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:14px;line-height:1.45;
+  padding-block:16px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--font-display);font-weight:600;margin:0;text-wrap:balance;letter-spacing:.01em;font-variant-numeric:lining-nums}
+.total strong,.kpi b,.tier span.num{font-variant-numeric:lining-nums}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto}
+.top{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between;margin-bottom:20px}
+.brand{display:flex;flex-direction:column;gap:2px}
+.brand h1{font-size:30px;font-weight:600}
+.brand span{color:var(--muted);font-size:13px}
+.tabs{display:flex;gap:4px;background:var(--surface-2);padding:4px;border-radius:12px}
+.tab{border:0;background:transparent;padding:8px 16px;border-radius:9px;font-weight:500;color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.demo-note{font-size:12px;color:var(--muted);margin-top:16px}
+
+/* customer */
+.stage{display:grid;grid-template-columns:minmax(0,390px) minmax(0,1fr);gap:32px;align-items:start}
+.phone{background:var(--surface);border:1px solid var(--line);border-radius:28px;box-shadow:var(--shadow);overflow:hidden;
+  display:flex;flex-direction:column;height:min(780px,calc(100vh - 120px));min-height:640px}
+.p-head{padding:14px 18px 10px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.p-head h2{font-size:21px}
+.steps{display:flex;gap:6px}
+.dot{width:22px;height:6px;border-radius:4px;border:0;padding:0;background:var(--line)}
+.dot[aria-current="step"]{background:var(--accent)}
+.dot.done{background:var(--accent);opacity:.45}
+.screen{flex:1;overflow:auto;padding:16px 18px 12px;display:flex;flex-direction:column;gap:14px}
+.p-foot{display:flex;gap:10px;padding:12px 18px 16px;border-top:1px solid var(--line)}
+.btn{border:1px solid var(--line);background:var(--surface);padding:11px 16px;border-radius:8px;font-weight:500;letter-spacing:.02em}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.grow{flex:1}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.lead{color:var(--muted);margin:0}
+.card{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--surface)}
+.card.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;background:var(--accent-soft)}
+.row{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.num{font-variant-numeric:tabular-nums}
+.seg{display:flex;background:var(--surface-2);border-radius:10px;padding:3px;gap:2px}
+.seg button{flex:1;border:0;background:transparent;padding:7px 8px;border-radius:8px;font-size:13px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.room{border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--surface-2)}
+.room svg{display:block;width:100%;height:auto}
+.room{position:relative}
+.room canvas{display:block;width:100%;height:auto;touch-action:none;cursor:grab;background:#1a1815}
+.room canvas:active{cursor:grabbing}
+.tip{position:absolute;left:10px;right:10px;bottom:10px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;box-shadow:var(--shadow)}
+.vibes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.vibe{display:flex;flex-direction:column;gap:3px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:6px;min-width:0}
+.vibe[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;background:var(--accent-soft)}
+.vibe b{font-size:13px;padding:0 2px}.vibe .small{padding:0 2px;line-height:1.25}
+.vimg{display:block;border-radius:8px;overflow:hidden}.vimg svg{display:block;width:100%;height:auto}
+.pal{display:flex;gap:4px;padding:2px}.pal i{width:16px;height:16px;border-radius:50%;border:1px solid var(--line);display:block}
+.objrow{display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+.objrow .seg button{padding:6px 4px}
+@media (max-width:400px){.objrow{grid-template-columns:minmax(0,1fr)}}
+.hold{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.hold .btn{touch-action:manipulation;user-select:none;padding:11px 6px}
+.finder{position:relative;border-radius:14px;aspect-ratio:4/3;max-width:100%;overflow:hidden;border:1px solid var(--line);
+  background:repeating-linear-gradient(0deg,var(--surface-2) 0 1px,transparent 1px 36px),repeating-linear-gradient(90deg,var(--surface-2) 0 1px,transparent 1px 36px),var(--surface)}
+.finder .scan{position:absolute;left:0;right:0;height:3px;background:var(--accent);box-shadow:0 0 18px var(--accent);top:10%;animation:scan 1.6s ease-in-out infinite alternate}
+.finder .cap{position:absolute;left:12px;bottom:10px;font-size:12px;color:var(--muted)}
+@keyframes scan{to{top:88%}}
+@media (prefers-reduced-motion:reduce){.finder .scan{animation:none}}
+.dims{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.dims label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.dims input{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%;min-width:0}
+.prod{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;text-align:left;width:100%}
+.sw{width:34px;height:34px;border-radius:9px;border:1px solid var(--line)}
+.stars{color:var(--warn)}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top;font-size:13px}
+th{font-weight:500;color:var(--muted);font-size:12px}
+td.r,th.r{text-align:right}
+.tbl{overflow-x:auto}
+.total{display:flex;justify-content:space-between;align-items:baseline;padding:12px 14px;border-radius:14px;background:var(--accent);color:var(--accent-ink)}
+.total strong{font-family:var(--font-display);font-size:26px}
+.toast{position:sticky;bottom:0;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;font-size:13px}
+
+.side{display:flex;flex-direction:column;gap:16px;min-width:0}
+.side .card{box-shadow:var(--shadow)}
+.side h2{font-size:24px;margin-bottom:6px}
+.flow{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.flow li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;color:var(--muted);align-items:start}
+.flow li b{color:var(--ink);font-weight:500}
+.flow .n{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:11px}
+.flow li.on .n{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.flow li.on{color:var(--ink)}
+.flow li button{all:unset;cursor:pointer;display:contents}
+.pay{background:var(--warn-soft);border-color:transparent;color:var(--ink)}
+.pay h3{font-size:13px;color:var(--warn);margin-bottom:4px}
+
+/* partner */
+.grid{display:grid;gap:16px}
+.g3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.kpi{display:flex;flex-direction:column;gap:2px}
+.kpi b{font-family:var(--font-display);font-size:28px;font-weight:600}
+.tier{text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.tier[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;background:var(--accent-soft)}
+.bar{height:8px;border-radius:6px;background:var(--surface-2);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.sec-title{font-size:20px;margin-bottom:10px}
+@media (max-width:900px){.stage{grid-template-columns:minmax(0,1fr)}.phone{max-width:420px;margin:0 auto;width:100%}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Ремонт в кадре</h1>
+      <span>Кликабельный прототип: от фото комнаты до сметы и бригады</span>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Режим прототипа">
+      <button class="tab" role="tab" id="tab-user" aria-selected="true" data-act="mode" data-v="user">Заказчик</button>
+      <button class="tab" role="tab" id="tab-partner" aria-selected="false" data-act="mode" data-v="partner">Кабинет партнёра</button>
+    </div>
+  </header>
+  <main id="app"></main>
+  <p class="demo-note">Демо-данные: партнёры, товары, цены и отзывы вымышленные. Расчёты количества и сметы работают по формулам из ТЗ.</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+var CAT = {
+  wall:[
+    {id:'w1',n:'Краска «Шалфей», матовая',p:'СтройДом',r:4.7,c:'#A9B8A0',k:'paint',pr:38,note:'банка 5 л'},
+    {id:'w2',n:'Краска «Белый лён»',p:'СтройДом',r:4.7,c:'#ECE9E1',k:'paint',pr:34,note:'банка 5 л'},
+    {id:'w3',n:'Обои «Лён», флизелин',p:'ДекорМир',r:4.5,c:'#CDB89E',k:'paper',pr:21,note:'рулон 10 м'},
+    {id:'w4',n:'Краска «Графит», матовая',p:'СтройДом',r:4.6,c:'#4A4F52',k:'paint',pr:41,note:'банка 5 л'},
+    {id:'w5',n:'Краска «Терракота»',p:'СтройДом',r:4.5,c:'#B5694B',k:'paint',pr:40,note:'банка 5 л'},
+    {id:'w6',n:'Краска «Глубокий синий»',p:'СтройДом',r:4.6,c:'#2F4A63',k:'paint',pr:42,note:'банка 5 л'},
+    {id:'w7',n:'Краска «Тёплый серый»',p:'СтройДом',r:4.7,c:'#B3ADA3',k:'paint',pr:36,note:'банка 5 л'},
+    {id:'w8',n:'Краска «Пудровый розовый»',p:'СтройДом',r:4.4,c:'#D9B8AE',k:'paint',pr:39,note:'банка 5 л'},
+    {id:'w9',n:'Краска «Оливковый»',p:'СтройДом',r:4.5,c:'#7D8460',k:'paint',pr:40,note:'банка 5 л'}
+  ],
+  floor:[
+    {id:'f1',n:'Ламинат «Дуб светлый», 33 класс',p:'ПолМаркет',r:4.8,c:'#C9A878',k:'lam',pr:19.5,pack:2.4,note:'пачка 2,4 м²'},
+    {id:'f2',n:'Ламинат «Орех тёмный», 33 класс',p:'ПолМаркет',r:4.8,c:'#6E4B35',k:'lam',pr:22,pack:2.4,note:'пачка 2,4 м²'},
+    {id:'f3',n:'Плитка «Бетон» 60×60',p:'КерамХаус',r:4.4,c:'#8E9396',k:'tile',pr:27,pack:1.44,note:'упаковка 1,44 м²'},
+    {id:'f4',n:'Ламинат «Дуб серый», 33 класс',p:'ПолМаркет',r:4.7,c:'#A39C92',k:'lam',pr:21,pack:2.4,note:'пачка 2,4 м²'},
+    {id:'f5',n:'Ламинат «Венге», 33 класс',p:'ПолМаркет',r:4.7,c:'#4A3A32',k:'lam',pr:23,pack:2.4,note:'пачка 2,4 м²'},
+    {id:'f6',n:'Плитка «Светлый камень» 60×60',p:'КерамХаус',r:4.5,c:'#CFCBC3',k:'tile',pr:26,pack:1.44,note:'упаковка 1,44 м²'},
+    {id:'f7',n:'Ламинат «Ясень белёный», 33 класс',p:'ПолМаркет',r:4.6,c:'#DDD3C2',k:'lam',pr:20,pack:2.4,note:'пачка 2,4 м²'}
+  ],
+  furn:[
+    {id:'sofa',n:'Диван «Норд», 3-местный',p:'ЛюксМебель',r:4.6,c:'#3E5C76',k:'sofa',pr:640,note:'2,1 × 0,95 м',url:'luxmebel.example/nord'},
+    {id:'lamp',n:'Торшер «Арка»',p:'СветЛайн',r:4.9,c:'#D9A441',k:'lamp',pr:85,note:'высота 1,8 м',url:'svetline.example/arka'}
+  ]
+};
+var CREWS = [
+  {id:'c1',n:'Мастер-Про',r:4.8,rev:127,days:5,paint:7,paper:6,lam:9,tile:24,plinth:2.5,asm:30,putty:5,plast:9,wire:12,chase:6},
+  {id:'c2',n:'Ремонт 24',r:4.5,rev:203,days:3,paint:6,paper:5,lam:8,tile:20,plinth:2,asm:25,putty:4.5,plast:8,wire:10,chase:5},
+  {id:'c3',n:'Точный метр',r:4.9,rev:58,days:9,paint:8.5,paper:7,lam:11,tile:27,plinth:3,asm:40,putty:6.5,plast:11,wire:15,chase:7}
+];
+var STEPS = ['Объект','Замеры','Что меняем','Визуализация','Смета','Бригады'];
+var NOTES = [
+  {t:'Начало',x:'Заказчик заводит объект и отмечает стадию ремонта. От стадии зависит набор работ и материалов в смете.',pay:''},
+  {t:'Скан и 3D-модель',x:'Размеры и предметы комнаты получаются из LiDAR или видео. Приложение узнаёт кровать, шкаф, кухню и их габариты. Числа можно поправить, смета пересчитается.',pay:''},
+  {t:'Стиль, основание и предварительная смета',x:'Выберите один из 15 стилей по картинке, оставьте кухню, кровать или шкаф на месте, уточните выравнивание стен и электрику. Сразу виден ориентир по цене. Новые товары берутся из каталога; в начале это модели с открытыми лицензиями, позже поставщики загрузят свои.',pay:'Здесь поставщик получает показ: реклама «товар в фокусе» и рейтинг двигают позицию в списке.'},
+  {t:'Визуализация',x:'Быстрый эскиз готов за минуту. Фотореалистичный кадр и 3D-прогулка строятся из 3D-моделей и материалов партнёров и стоят платформе вычислений на GPU.',pay:'Каждый показ товара в визуализации попадает в статистику партнёра.'},
+  {t:'Смета материалов и работ',x:'Количество считается по площадям и нормам расхода, округляется до упаковки. Строки сгруппированы по партнёрам.',pay:'Покупка по смете даёт комиссию платформе: в модели 6% с материалов и 8% с работ.'},
+  {t:'Подбор бригад',x:'Цена считается по прайсу каждой бригады на одном и том же объёме. Рейтинг растёт от завершённых заказов.',pay:'Бригада платит подписку, комиссию с заказа и может купить место в подборе.'}
+];
+var S = {mode:'user',step:0,stage:'Черновая',scan:0,dim:{L:5.2,W:3.8,H:2.7},keep:{bed:'keep',wardrobe:'keep',kitchen:'keep'},lay:0,wall:'w1',floor:'f1',furn:{sofa:true,lamp:true},style:'Скандинавский',align:'putty',elec:'keep',buy:'best',skip:{},budget:3000,walkZ:1,walkP:0,
+  cat:'wall',ba:'after',tab:'mat',sort:'price',crew:null,sent:null,toast:'',tier:1,ads:300};
+
+function all(){return CAT.wall.concat(CAT.floor,CAT.furn);}
+function by(id){return all().filter(function(x){return x.id===id;})[0];}
+function money(n){return '$'+Math.round(n).toLocaleString('ru-RU');}
+function money2(n){return '$'+n.toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function stars(r){return '<span class="stars">★</span> '+r.toFixed(1).replace('.',',');}
+
+function geo(){
+  var d=S.dim, perim=2*(d.L+d.W);
+  return {floor:d.L*d.W, perim:perim, wall:Math.max(0,perim*d.H-4)};
+}
+function materials(){
+  var g=geo(), w=by(S.wall), f=by(S.floor), m=[], q, A=S.align;
+  function P(sec,n,p,qty,u,pr,how,url){m.push({s:sec,n:n,p:p,q:qty,u:u,pr:pr,how:how,url:url});}
+  var gw=g.wall.toFixed(1);
+  if(A==='plaster'){
+    P('wall','Штукатурка гипсовая, 30 кг','СтройДом',Math.ceil(g.wall*8.5*1.1/30),'мешок',9.5,gw+' м² × 8,5 кг/м² (слой 10 мм) + 10%');
+    P('wall','Маяки штукатурные 6 мм, 3 м','СтройДом',Math.ceil(g.wall/4),'шт.',1.2,'шаг маяков 1,5 м, около 1 на 4 м² стены');
+  }
+  if(A!=='none'){
+    P('wall','Шпаклёвка финишная, 25 кг','СтройДом',Math.ceil(g.wall*1.2*1.1/25),'мешок',14,gw+' м² × 1,2 кг/м² + 10%');
+    P('wall','Шлифовальная сетка и серпянка, комплект','СтройДом',Math.ceil(g.wall/25),'компл.',6,'1 комплект на 25 м²');
+  }
+  P('wall','Грунтовка глубокого проникновения, 10 л','СтройДом',Math.ceil(g.wall*1.1/80),'канистра',24,'около 80 м² на канистру');
+  if(w.k==='paint'){
+    var lit=g.wall*2/8*1.1;
+    P('wall',w.n,w.p,Math.ceil(lit/5),'банка 5 л',w.pr,gw+' м² × 2 слоя ÷ 8 м²/л + 10% = '+lit.toFixed(1)+' л');
+  } else {
+    var rolls=Math.ceil(g.wall*1.1/5);
+    P('wall',w.n,w.p,rolls,'рулон',w.pr,gw+' м² + 10% на подгонку ÷ 5 м² полезной площади');
+    P('wall','Клей для флизелиновых обоев','ДекорМир',Math.ceil(rolls/8),'пачка',12,'1 пачка на 8 рулонов');
+  }
+  var k=f.k==='tile'?1.12:1.08;
+  q=Math.ceil(g.floor*k/f.pack);
+  P('floor',f.n,f.p,q,f.k==='tile'?'упаковка':'пачка',f.pr*f.pack,g.floor.toFixed(1)+' м² + '+Math.round((k-1)*100)+'% запас ÷ '+String(f.pack).replace('.',',')+' м²');
+  if(f.k==='tile') P('floor','Плиточный клей, 25 кг','КерамХаус',Math.ceil(g.floor/5),'мешок',11,'1 мешок на 5 м²');
+  else P('floor','Подложка под ламинат, 10 м²','ПолМаркет',Math.ceil(g.floor*1.05/10),'рулон',14,g.floor.toFixed(1)+' м² + 5%');
+  P('floor','Плинтус напольный, 2,5 м','ПолМаркет',Math.ceil((g.perim-0.9)*1.05/2.5),'шт.',4.5,'периметр минус дверь, +5%');
+  if(S.elec!=='keep'){
+    var e=elecCalc();
+    P('elec','Кабель ВВГнг-LS 3×2,5 (розетки)','ЭлектроМир',e.c25,'м',1.1,e.sock+' розеток × 7 м + запас');
+    P('elec','Кабель ВВГнг-LS 3×1,5 (свет)','ЭлектроМир',e.c15,'м',.8,'освещение: '+e.lights+' точки света × 8 м');
+    P('elec','Гофра ПВХ 20 мм','ЭлектроМир',e.c25+e.c15,'м',.3,'по длине всех кабелей');
+    P('elec','Подрозетники 68 мм','ЭлектроМир',e.sock+e.sw,'шт.',.4,e.sock+' розеток + '+e.sw+' выключателя');
+    P('elec','Розетка с заземлением','ЭлектроМир',e.sock,'шт.',3.2,'1 розетка на 3 м периметра');
+    P('elec','Выключатель одноклавишный','ЭлектроМир',e.sw,'шт.',3.5,'у двери и у окна');
+    P('elec','Распаячные коробки','ЭлектроМир',2,'шт.',1.5,'по одной на группу');
+    P('elec','Автоматический выключатель 16 А','ЭлектроМир',Math.ceil(e.sock/4)+1,'шт.',6,'1 на 4 розетки + группа света');
+  }
+  ['sofa','lamp'].forEach(function(id){ if(S.furn[id]){var x=by(id); P('furn',x.n,x.p,1,'шт.',x.pr,'по выбору',x.url);} });
+  m.forEach(function(x){x.sum=x.q*x.pr;});
+  return m;
+}
+function elecCalc(){
+  var g=geo(),sock=Math.ceil(g.perim/3),sw=2,lights=3;
+  return {sock:sock,sw:sw,lights:lights,c25:Math.ceil(sock*7+10),c15:lights*8+sw*3,pts:sock+sw+lights};
+}
+/* shop-adjusted materials: best prices at partners, or everything in one store, with items the client skips */
+function matsAll(){
+  var m=materials();
+  m.forEach(function(x){
+    x.shop=(S.buy==='one'&&x.s!=='furn')?'ОбъектСтрой':x.p;
+    if(S.buy==='one'&&x.s!=='furn'){x.pr=x.pr*1.05;}
+    x.skip=!!S.skip[x.shop];
+    x.sum=x.skip?0:x.q*x.pr;
+  });
+  return m;
+}
+function matsTotal(){return matsAll().reduce(function(s,x){return s+x.sum;},0);}
+function works(c){
+  var g=geo(), w=by(S.wall), f=by(S.floor), cnt=(S.furn.sofa?1:0)+(S.furn.lamp?1:0), a=[], A=S.align;
+  function W(sec,n,qty,u,pr){a.push({s:sec,n:n,q:qty,u:u,pr:pr});}
+  if(A==='plaster') W('wall','Штукатурка стен по маякам',g.wall,'м²',c.plast);
+  if(A!=='none') W('wall','Шпаклёвка и шлифовка стен',g.wall,'м²',c.putty);
+  W('wall',w.k==='paint'?'Грунтовка и покраска стен':'Грунтовка и поклейка обоев',g.wall,'м²',w.k==='paint'?c.paint:c.paper);
+  W('floor',f.k==='tile'?'Укладка плитки':'Укладка ламината',g.floor,'м²',f.k==='tile'?c.tile:c.lam);
+  W('floor','Монтаж плинтуса',g.perim-0.9,'м',c.plinth);
+  if(S.elec!=='keep'){
+    var e=elecCalc();
+    if(S.elec==='proj') W('elec','Проект электроснабжения',1,'шт.',150);
+    W('elec','Штробление стен под кабель',Math.ceil(e.pts*3.5),'м',c.chase);
+    W('elec','Прокладка кабеля, монтаж подрозетников, розеток и выключателей',e.pts,'точка',c.wire);
+  }
+  if(cnt) W('furn','Сборка и установка мебели и света',cnt,'шт.',c.asm);
+  var rem=['bed','wardrobe','kitchen'].filter(function(k){return S.keep[k]==='remove';}).length;
+  if(rem) W('other','Демонтаж и вывоз мебели',rem,'шт.',25);
+  a.forEach(function(x){x.sum=x.q*x.pr;});
+  return a;
+}
+function worksTotal(c){return works(c).reduce(function(s,x){return s+x.sum;},0);}
+
+/* 15 interior "vibes"; every vibe maps to real catalog items so the estimate follows the picture */
+var STYLES={
+ 'Скандинавский':{d:'светлый, воздушный',wall:'w2',floor:'f7',sofa:true,lamp:true,sc:'#8FA3B5',names:['Белый','Светлое дерево','Серо-голубой']},
+ 'Тёплый натуральный':{d:'уют, дерево, лён',wall:'w3',floor:'f1',sofa:true,lamp:true,sc:'#B58B63',names:['Песочный','Дуб','Карамель']},
+ 'Графит':{d:'тёмно-серый, строгий',wall:'w4',floor:'f2',sofa:true,lamp:false,sc:'#6D7479',names:['Тёмно-серый','Орех','Серый']},
+ 'Лофт':{d:'бетон и тёмный металл',wall:'w7',floor:'f3',sofa:false,lamp:true,sc:'#7A5B45',names:['Серый тёплый','Бетон','Кожа коньяк']},
+ 'Минимализм':{d:'ничего лишнего',wall:'w2',floor:'f4',sofa:true,lamp:false,sc:'#9A9A96',names:['Белый','Серый дуб','Светло-серый']},
+ 'Японди':{d:'спокойный, природный',wall:'w7',floor:'f1',sofa:true,lamp:true,sc:'#A3957F',names:['Тёплый серый','Дуб','Льняной']},
+ 'Терракота':{d:'тёплый, глиняный',wall:'w5',floor:'f2',sofa:true,lamp:true,sc:'#D8C3A5',names:['Терракота','Орех','Молочный']},
+ 'Глубокий синий':{d:'насыщенный, вечерний',wall:'w6',floor:'f1',sofa:true,lamp:true,sc:'#C9A24A',names:['Тёмно-синий','Дуб','Горчичный']},
+ 'Пудровый':{d:'мягкий, нежный',wall:'w8',floor:'f7',sofa:true,lamp:true,sc:'#8E9B8A',names:['Пудровый розовый','Белёный ясень','Шалфей']},
+ 'Оливковый':{d:'природный, спокойный',wall:'w9',floor:'f1',sofa:true,lamp:true,sc:'#E3D8C2',names:['Оливковый','Дуб','Кремовый']},
+ 'Классика':{d:'тёплые тона, орех',wall:'w3',floor:'f2',sofa:true,lamp:true,sc:'#7B4B43',names:['Бежевый','Орех','Бордо']},
+ 'Тёмный люкс':{d:'графит и венге',wall:'w4',floor:'f5',sofa:true,lamp:true,sc:'#B9945A',names:['Графит','Венге','Латунь']},
+ 'Индустриальный':{d:'серый камень и металл',wall:'w4',floor:'f4',sofa:false,lamp:true,sc:'#8D8F90',names:['Графит','Серый дуб','Сталь']},
+ 'Средиземноморье':{d:'светлый камень, тепло',wall:'w3',floor:'f6',sofa:true,lamp:true,sc:'#5F8CA8',names:['Лён','Светлый камень','Лазурь']},
+ 'Шале':{d:'дерево и терракота',wall:'w5',floor:'f5',sofa:true,lamp:true,sc:'#C9B79B',names:['Терракота','Венге','Бежевый']}
+};
+function fullRepair(){var o=STYLES[S.style];if(!o)return;S.wall=o.wall;S.floor=o.floor;S.furn={sofa:o.sofa,lamp:o.lamp};}
+function curSofaC(){var o=STYLES[S.style];return o?o.sc:'#3E5C76';}
+function shade(hex,pct){var n=parseInt(hex.slice(1),16),r=n>>16,g=(n>>8)&255,b=n&255,f=pct/100;
+  function c(x){return Math.max(0,Math.min(255,Math.round(f<0?x*(1+f):x+(255-x)*f)));}
+  return '#'+((1<<24)+(c(r)<<16)+(c(g)<<8)+c(b)).toString(16).slice(1);}
+function miniRoom(k){
+  var o=STYLES[k],w=by(o.wall).c,f=by(o.floor).c,sc=o.sc;
+  var s='<svg viewBox="0 0 160 100" role="img" aria-label="Пример комнаты: '+esc(k)+'">';
+  s+='<rect width="160" height="100" fill="'+w+'"/><polygon points="0,100 22,64 138,64 160,100" fill="'+f+'"/>';
+  s+='<polygon points="0,0 22,12 22,64 0,100" fill="rgba(0,0,0,.14)"/><polygon points="160,0 138,12 138,64 160,100" fill="rgba(0,0,0,.08)"/>';
+  s+='<rect x="22" y="60" width="116" height="4" fill="rgba(255,255,255,.55)"/>';
+  s+='<rect x="64" y="20" width="34" height="26" fill="#CFE3EE" stroke="rgba(255,255,255,.8)" stroke-width="2.5"/>';
+  if(o.sofa) s+='<rect x="42" y="50" width="64" height="20" rx="4" fill="'+sc+'"/><rect x="38" y="54" width="8" height="18" rx="3" fill="'+shade(sc,-14)+'"/><rect x="102" y="54" width="8" height="18" rx="3" fill="'+shade(sc,-14)+'"/><rect x="48" y="56" width="26" height="12" rx="3" fill="'+shade(sc,12)+'"/><rect x="76" y="56" width="26" height="12" rx="3" fill="'+shade(sc,12)+'"/>';
+  if(o.lamp) s+='<path d="M124 72V44Q124 36 132 36" stroke="#2B2B2B" stroke-width="1.6" fill="none"/><path d="M129 36H138L136 43H131Z" fill="#D9A441"/>';
+  return s+'</svg>';
+}
+/* section helpers for the estimate */
+var SECS=[['wall','Стены'],['floor','Пол'],['elec','Электрика'],['furn','Мебель и свет'],['other','Прочее']];
+function secTotals(){
+  var c=activeCrew(),m=matsAll(),w=works(c),t={};
+  SECS.forEach(function(x){t[x[0]]={mat:0,work:0};});
+  m.forEach(function(x){t[x.s].mat+=x.sum;});
+  w.forEach(function(x){t[x.s].work+=x.sum;});
+  return t;
+}
+function walkVB(){var z=S.walkZ,w=320/z,h=200/z,lim=(320-w)/2,p=Math.max(-lim,Math.min(lim,S.walkP));S.walkP=p;return ((320-w)/2+p).toFixed(1)+' '+((200-h)/2).toFixed(1)+' '+w.toFixed(1)+' '+h.toFixed(1);}
+
+/* furniture layout (prototype solver) */
+var EX={bed:{n:'Кровать 160×200',s:'кровать',h:.5},wardrobe:{n:'Шкаф-купе 120×60',s:'шкаф',h:2.2},kitchen:{n:'Кухонный гарнитур 220×60',s:'кухня',h:.9}};
+function exRect(id){var L=S.dim.L,W=S.dim.W,a=-L/2,b=L/2,c=-W/2;
+  if(id==='bed')return {x0:a,x1:a+2,z0:c,z1:c+1.6};
+  if(id==='kitchen')return {x0:b-.6,x1:b,z0:c,z1:c+2.2};
+  return {x0:b-.6,x1:b,z0:c+2.4,z1:c+3.6};}
+function doorZone(){var L=S.dim.L,W=S.dim.W;return {x0:-L/2,x1:-L/2+.9,z0:W/2-1.35,z1:W/2-.45};}
+function ov(r,q,m){return r.x0<q.x1+m&&r.x1>q.x0-m&&r.z0<q.z1+m&&r.z1>q.z0-m;}
+function inRoom(r){var L=S.dim.L,W=S.dim.W,e=1e-6;return r.x0>=-L/2-e&&r.x1<=L/2+e&&r.z0>=-W/2-e&&r.z1<=W/2+e;}
+function keptRects(){return ['bed','wardrobe','kitchen'].filter(function(k){return S.keep[k]==='keep';}).map(exRect);}
+function computeLayouts(){
+  var L=S.dim.L,W=S.dim.W,a=-L/2,b=L/2,c=-W/2,d=W/2,kept=keptRects(),dz=doorZone(),cand=[],out=[],i,t;
+  function lampFor(sr){
+    var sp=[],q;
+    if(sr){
+      var fw=(sr.z0>=d-1),bw=(sr.z1<=c+1),lw=(sr.x1<=a+1),rw=(sr.x0>=b-1);
+      if(fw||bw){var zz=fw?d-.4:c+.4;sp=[[sr.x1+.4,zz],[sr.x0-.4,zz]];}
+      else if(lw||rw){var xx=lw?a+.4:b-.4;sp=[[xx,sr.z1+.4],[xx,sr.z0-.4]];}
+    } else sp=[[a+.4,c+.4],[b-.4,c+.4],[a+.4,d-.4],[b-.4,d-.4]];
+    for(i=0;i<sp.length;i++){
+      q={x0:sp[i][0]-.3,x1:sp[i][0]+.3,z0:sp[i][1]-.3,z1:sp[i][1]+.3};
+      if(!inRoom(q)||ov(q,dz,0)||(sr&&ov(q,sr,.05)))continue;
+      var bad=false;for(var j=0;j<kept.length;j++)if(ov(q,kept[j],.3))bad=true;
+      if(!bad)return {x:sp[i][0],z:sp[i][1]};
+    }
+    return null;
+  }
+  if(!S.furn.sofa){return [{sofa:null,lamp:S.furn.lamp?lampFor(null):null,wall:'—'}];}
+  function add(wall,tt,r,rot,sc){
+    if(!inRoom(r)||ov(r,dz,0))return;
+    for(var k=0;k<kept.length;k++)if(ov(r,kept[k],.7))return;
+    cand.push({wall:wall,t:tt,r:r,rot:rot,sc:sc});
+  }
+  for(t=a+1.05;t<=b-1.05+1e-6;t+=.25){
+    add('front',t,{x0:t-1.05,x1:t+1.05,z0:d-.95,z1:d},Math.PI,3-Math.abs(t)*.3);
+    add('back',t,{x0:t-1.05,x1:t+1.05,z0:c,z1:c+.95},0,1-Math.abs(t)*.3);
+  }
+  for(t=c+1.05;t<=d-1.05+1e-6;t+=.25){
+    add('left',t,{x0:a,x1:a+.95,z0:t-1.05,z1:t+1.05},Math.PI/2,1.5-Math.abs(t)*.3);
+    add('right',t,{x0:b-.95,x1:b,z0:t-1.05,z1:t+1.05},-Math.PI/2,1.5-Math.abs(t)*.3);
+  }
+  cand.sort(function(p,q){return q.sc-p.sc;});
+  cand.forEach(function(cd){
+    if(out.length>=3)return;
+    for(var k=0;k<out.length;k++)if(out[k].wall===cd.wall&&Math.abs(out[k].t-cd.t)<.5)return;
+    out.push({wall:cd.wall,t:cd.t,rot:cd.rot,r:cd.r,sofa:{x:(cd.r.x0+cd.r.x1)/2,z:(cd.r.z0+cd.r.z1)/2,rot:cd.rot,r:cd.r},lamp:S.furn.lamp?lampFor(cd.r):null});
+  });
+  return out;
+}
+function curLayout(){var l=computeLayouts();return l.length?l[Math.min(S.lay,l.length-1)]:null;}
+function planSVG(){
+  var L=S.dim.L,W=S.dim.W,k=56,m=14,w=L*k+2*m,h=W*k+2*m,lay=curLayout(),dz=doorZone();
+  function X(x){return (m+(x+L/2)*k).toFixed(1);}
+  function Z(z){return (m+(z+W/2)*k).toFixed(1);}
+  function box(r,st,lab,tx){return '<rect x="'+X(r.x0)+'" y="'+Z(r.z0)+'" width="'+((r.x1-r.x0)*k).toFixed(1)+'" height="'+((r.z1-r.z0)*k).toFixed(1)+'" rx="3" style="'+st+'"/>'
+    +'<text x="'+X((r.x0+r.x1)/2)+'" y="'+(parseFloat(Z((r.z0+r.z1)/2))+3).toFixed(1)+'" text-anchor="middle" font-size="10" style="'+tx+'">'+lab+'</text>';}
+  var s='<svg viewBox="0 0 '+w.toFixed(0)+' '+h.toFixed(0)+'" role="img" aria-label="План комнаты с расстановкой мебели">';
+  s+='<defs><pattern id="ht" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" style="stroke:var(--muted);stroke-width:1.2;opacity:.55"/></pattern></defs>';
+  s+='<rect x="'+m+'" y="'+m+'" width="'+(L*k).toFixed(1)+'" height="'+(W*k).toFixed(1)+'" style="fill:var(--surface);stroke:var(--ink);stroke-width:2.5"/>';
+  s+='<line x1="'+X(-.7)+'" x2="'+X(.7)+'" y1="'+m+'" y2="'+m+'" style="stroke:var(--accent);stroke-width:5"/>';
+  s+='<text x="'+X(0)+'" y="'+(m+16)+'" text-anchor="middle" font-size="9.5" style="fill:var(--muted)">окно</text>';
+  s+='<line x1="'+m+'" x2="'+m+'" y1="'+Z(dz.z0)+'" y2="'+Z(dz.z1)+'" style="stroke:var(--surface);stroke-width:5"/><line x1="'+m+'" x2="'+(m+.9*k).toFixed(1)+'" y1="'+Z(dz.z1)+'" y2="'+Z(dz.z1)+'" style="stroke:var(--muted);stroke-width:1.2;stroke-dasharray:3 3"/>';
+  s+='<text x="'+(m+6)+'" y="'+(parseFloat(Z(dz.z0))-5).toFixed(1)+'" font-size="9.5" style="fill:var(--muted)">дверь</text>';
+  ['bed','wardrobe','kitchen'].forEach(function(id){
+    var r=exRect(id);
+    if(S.keep[id]==='keep') s+=box(r,'fill:url(#ht);stroke:var(--muted);stroke-width:1.5',EX[id].s,'fill:var(--ink)');
+    else s+=box(r,'fill:none;stroke:var(--muted);stroke-width:1.2;stroke-dasharray:4 3',EX[id].s+' (убрать)','fill:var(--muted)');
+  });
+  if(lay&&lay.sofa) s+=box(lay.sofa.r,'fill:var(--accent-soft);stroke:var(--accent);stroke-width:2','диван','fill:var(--ink)');
+  if(lay&&lay.lamp) s+='<circle cx="'+X(lay.lamp.x)+'" cy="'+Z(lay.lamp.z)+'" r="'+(.22*k).toFixed(1)+'" style="fill:var(--warn-soft);stroke:var(--warn);stroke-width:2"/><text x="'+X(lay.lamp.x)+'" y="'+(parseFloat(Z(lay.lamp.z))+3).toFixed(1)+'" text-anchor="middle" font-size="8.5" style="fill:var(--ink)">свет</text>';
+  return s+'</svg>';
+}
+
+function crewsSorted(){
+  var l=CREWS.slice();
+  if(S.sort==='price') l.sort(function(a,b){return worksTotal(a)-worksTotal(b);});
+  else l.sort(function(a,b){return b.r-a.r;});
+  return l;
+}
+function activeCrew(){
+  var id=S.crew||crewsSorted().sort(function(a,b){return worksTotal(a)-worksTotal(b);})[0].id;
+  return CREWS.filter(function(c){return c.id===id;})[0];
+}
+
+/* room drawing */
+function roomSVG(after,vb){
+  var w=by(S.wall), f=by(S.floor);
+  var wallC=after?w.c:'#B7B4AC', floorC=after?f.c:'#98958F';
+  var wallPat=after&&w.k==='paper';
+  var s='<svg viewBox="'+(vb||'0 0 320 200')+'" role="img" aria-label="Визуализация комнаты">';
+  s+='<defs><pattern id="pl" width="48" height="7" patternUnits="userSpaceOnUse"><path d="M0 6.5H48M24 0V6.5" stroke="rgba(0,0,0,.2)" stroke-width="1" fill="none"/></pattern>'
+   +'<pattern id="tl" width="36" height="14" patternUnits="userSpaceOnUse"><path d="M0 .5H36M.5 0V14" stroke="rgba(255,255,255,.35)" stroke-width="1" fill="none"/></pattern>'
+   +'<pattern id="pp" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M0 0V12M6 0V12" stroke="rgba(0,0,0,.09)" stroke-width="1.5" fill="none"/></pattern></defs>';
+  s+='<polygon points="10,10 310,10 260,30 60,30" fill="#EDEBE6"/>';
+  s+='<polygon points="10,10 60,30 60,130 10,190" fill="'+wallC+'"/><polygon points="10,10 60,30 60,130 10,190" fill="rgba(0,0,0,.14)"/>';
+  s+='<polygon points="310,10 260,30 260,130 310,190" fill="'+wallC+'"/><polygon points="310,10 260,30 260,130 310,190" fill="rgba(0,0,0,.08)"/>';
+  s+='<rect x="60" y="30" width="200" height="100" fill="'+wallC+'"/>';
+  if(wallPat){s+='<polygon points="10,10 60,30 60,130 10,190" fill="url(#pp)"/><polygon points="310,10 260,30 260,130 310,190" fill="url(#pp)"/><rect x="60" y="30" width="200" height="100" fill="url(#pp)"/>';}
+  s+='<rect x="108" y="48" width="64" height="46" fill="#CFE3EE" stroke="#F4F4F2" stroke-width="4"/><path d="M140 48V94M108 71H172" stroke="#F4F4F2" stroke-width="3"/>';
+  s+='<polygon points="10,190 60,130 260,130 310,190" fill="'+floorC+'"/>';
+  if(after){s+='<polygon points="10,190 60,130 260,130 310,190" fill="url(#'+(f.k==='tile'?'tl':'pl')+')"/>';}
+  s+='<rect x="60" y="126" width="200" height="4" fill="'+(after?'#F1F0EC':'#A8A59E')+'"/>';
+  if(after&&S.furn.sofa){
+    s+='<g><rect x="88" y="98" width="112" height="34" rx="6" fill="'+curSofaC()+'"/><rect x="82" y="104" width="14" height="30" rx="5" fill="'+shade(curSofaC(),-14)+'"/><rect x="192" y="104" width="14" height="30" rx="5" fill="'+shade(curSofaC(),-14)+'"/>'
+     +'<rect x="98" y="108" width="44" height="20" rx="4" fill="'+shade(curSofaC(),12)+'"/><rect x="146" y="108" width="44" height="20" rx="4" fill="'+shade(curSofaC(),12)+'"/><rect x="92" y="134" width="6" height="4" fill="#222"/><rect x="190" y="134" width="6" height="4" fill="#222"/></g>';
+  }
+  if(after&&S.furn.lamp){
+    s+='<g><circle cx="232" cy="70" r="30" fill="rgba(255,226,150,.28)"/><path d="M232 138V78Q232 56 250 56" stroke="#2B2B2B" stroke-width="2.5" fill="none"/><ellipse cx="232" cy="139" rx="9" ry="2.5" fill="#2B2B2B"/><path d="M243 58H259L255 70H247Z" fill="#D9A441"/></g>';
+  }
+  s+='</svg>';
+  return s;
+}
+
+/* customer screens */
+function screen(){
+  var st=S.step, h='';
+  if(st===0){
+    h+='<p class="lead">Объект создан. Выберите, что в нём ремонтируем.</p>'
+     +'<div class="card"><div class="row"><b>Квартира, ул. Садовая</b><span class="badge">2 комнаты</span></div><div class="muted small">Площадь по документам: 48 м²</div></div>'
+     +'<div class="card sel"><div class="row"><b>Гостиная</b><span class="small muted">комната 1</span></div><div class="small muted" style="margin:4px 0 8px">Стадия ремонта</div><div class="chips" role="group" aria-label="Стадия">';
+    ['Черновая','Под отделку','Чистовая'].forEach(function(x){h+='<button class="chip" data-act="stage" data-v="'+x+'" aria-pressed="'+(S.stage===x)+'">'+x+'</button>';});
+    h+='</div></div><button class="btn" disabled>+ Добавить комнату</button>';
+  }
+  if(st===1){
+    h+='<p class="lead">Проведите камерой вдоль стен и по полу. Для телефонов с LiDAR размеры считаются сразу.</p>'
+     +'<div class="finder">'+(S.scan===1?'<div class="scan"></div>':'')+'<div class="cap">'+(S.scan===0?'Камера готова':S.scan===1?'Сканирование…':'Комната распознана')+'</div></div>';
+    if(S.scan===0) h+='<button class="btn primary" data-act="scan">Начать сканирование</button>';
+    if(S.scan===1) h+='<button class="btn" disabled>Идёт сканирование</button>';
+    if(S.scan===2){
+      var g=geo();
+      h+='<div class="dims"><label>Длина, м<input id="dL" type="number" step="0.1" min="1" max="12" value="'+S.dim.L+'" data-dim="L"></label>'
+       +'<label>Ширина, м<input id="dW" type="number" step="0.1" min="1" max="12" value="'+S.dim.W+'" data-dim="W"></label>'
+       +'<label>Высота, м<input id="dH" type="number" step="0.05" min="2" max="4" value="'+S.dim.H+'" data-dim="H"></label></div>'
+       +'<div class="card"><div class="row"><span class="muted">Пол</span><b class="num" id="aF">'+g.floor.toFixed(1)+' м²</b></div>'
+       +'<div class="row"><span class="muted">Стены без проёмов</span><b class="num" id="aW">'+g.wall.toFixed(1)+' м²</b></div>'
+       +'<div class="row"><span class="muted">Окно и дверь</span><b class="num">4,0 м²</b></div></div>'
+       +'<p class="small muted" style="margin:0">Измените числа, если приложение ошиблось: смета пересчитается.</p>'
+       +'<div class="card"><div class="row"><b>Распознано в комнате</b><span class="badge">3 предмета</span></div>'
+       +['kitchen','bed','wardrobe'].map(function(id){return '<div class="row small" style="margin-top:6px"><span>'+EX[id].n+'</span><span class="muted">найдено по скану</span></div>';}).join('')
+       +'<div class="small muted" style="margin-top:8px">На следующем шаге отметьте, что остаётся на месте.</div></div>';
+    }
+  }
+  if(st===2){
+    var lays=computeLayouts(), curL=curLayout(), tt=secTotals(), cr=activeCrew(), grand=0;
+    SECS.forEach(function(x){grand+=tt[x[0]].mat+tt[x[0]].work;});
+    h+='<div class="room">'+roomSVG(true)+'</div>'
+     +'<div class="card"><div class="row"><b>Что в комнате</b><span class="badge">из скана</span></div><div class="small muted" style="margin:4px 0 6px">Оставленное не меняется и не попадает в смету. Вокруг него сохраняются проходы.</div>'
+     +['kitchen','bed','wardrobe'].map(function(id){return '<div class="objrow"><span><b>'+EX[id].n+'</b></span><div class="seg" role="group" aria-label="'+EX[id].s+'"><button data-act="keep" data-v="'+id+':keep" aria-pressed="'+(S.keep[id]==='keep')+'">Оставить</button><button data-act="keep" data-v="'+id+':remove" aria-pressed="'+(S.keep[id]==='remove')+'">Убрать</button></div></div>';}).join('')+'</div>'
+     +'<div class="card"><div class="row"><b>Выберите «вайб» ремонта</b><span class="badge">15 стилей</span></div><div class="small muted" style="margin:4px 0 8px">Покрытия, цвет мебели и свет подберутся из каталога партнёров. Потом любой элемент можно заменить.</div>'
+     +'<div class="vibes" role="group" aria-label="Стиль">'
+     +Object.keys(STYLES).map(function(k){var o=STYLES[k];return '<button class="vibe" data-act="style" data-v="'+esc(k)+'" aria-pressed="'+(S.style===k)+'"><span class="vimg">'+miniRoom(k)+'</span><b>'+esc(k)+'</b><span class="small muted">'+esc(o.d)+'</span><span class="pal">'+[by(o.wall).c,by(o.floor).c,o.sc].map(function(c){return '<i style="background:'+c+'"></i>';}).join('')+'</span></button>';}).join('')
+     +'</div>'
+     +(STYLES[S.style]?'<div class="small" style="margin-top:10px"><b>'+esc(S.style)+':</b> стены — '+STYLES[S.style].names[0].toLowerCase()+', пол — '+STYLES[S.style].names[1].toLowerCase()+', акцент — '+STYLES[S.style].names[2].toLowerCase()+'.</div>':'')
+     +'<button class="btn" style="margin-top:10px;width:100%" data-act="ref">Загрузить своё фото-вдохновение (например, из Pinterest)</button></div>'
+     +'<div class="card"><div class="row"><b>Основание под отделку</b><span class="badge warn">уточните</span></div>'
+     +'<div class="small muted" style="margin:4px 0 6px">Стены: выравнивание</div><div class="chips" role="group" aria-label="Выравнивание стен">'
+     +[['none','Не нужно'],['putty','Шпаклёвка'],['plaster','Штукатурка + шпаклёвка']].map(function(x){return '<button class="chip" data-act="align" data-v="'+x[0]+'" aria-pressed="'+(S.align===x[0])+'">'+x[1]+'</button>';}).join('')+'</div>'
+     +'<div class="small muted" style="margin:10px 0 6px">Электрика</div><div class="chips" role="group" aria-label="Электрика">'
+     +[['keep','Оставить как есть'],['new','Новая разводка'],['proj','Новая, по проекту']].map(function(x){return '<button class="chip" data-act="elec" data-v="'+x[0]+'" aria-pressed="'+(S.elec===x[0])+'">'+x[1]+'</button>';}).join('')+'</div>'
+     +'<div class="small muted" style="margin-top:8px">'+(S.elec==='keep'?'Розетки и проводка остаются, электромонтаж в смету не входит.':S.elec==='new'?'Штробление, кабель, подрозетники, розетки и автоматы войдут в смету.':'Плюс проект электроснабжения от специалиста (150 $).')+'</div></div>'
+     +'<div class="card"><div class="row"><b>Расстановка мебели</b><span class="badge">ИИ</span></div><div class="room" style="margin:8px 0">'+planSVG()+'</div>'
+     +(lays.length&&(lays[0].sofa||!S.furn.sofa)?'<div class="chips" role="group" aria-label="Вариант расстановки">'+lays.map(function(l,i){return '<button class="chip" data-act="lay" data-v="'+i+'" aria-pressed="'+(S.lay===i||(S.lay>=lays.length&&i===0))+'">Вариант '+(i+1)+'</button>';}).join('')+'</div><div class="small muted" style="margin-top:8px">Штриховка: предметы, оставленные на месте. Проход между предметами не меньше 70 см, у двери 90 см.</div>'
+       :'<div class="small" style="color:var(--bad)">Диван не помещается: с учётом оставленных предметов и проходов 70 см места нет. Уберите один из предметов или выберите стиль без дивана.</div>')+'</div>'
+     +'<div class="card sel"><div class="row"><b>Предварительная смета</b><span class="badge warn">ориентир</span></div>'
+     +SECS.filter(function(x){return tt[x[0]].mat+tt[x[0]].work>0;}).map(function(x){var q=tt[x[0]];return '<div class="row small" style="margin-top:6px"><span>'+x[1]+'</span><span class="num">'+money(q.mat+q.work)+'</span></div><div class="small muted" style="text-align:right">материалы '+money(q.mat)+(q.work?' · работы '+money(q.work):'')+'</div>';}).join('')
+     +'<div class="row" style="border-top:1px solid var(--line);margin-top:8px;padding-top:8px"><b>Итого</b><b class="num">'+money(grand)+'</b></div>'
+     +'<div class="small muted" style="margin-top:6px">Работы по прайсу бригады «'+esc(cr.n)+'» (самая выгодная). Точная смета с разбивкой, магазинами и исполнителями на следующих шагах.</div></div>'
+     +'<div class="seg" role="group" aria-label="Категория">'
+     +[['wall','Стены'],['floor','Пол'],['furn','Мебель и свет']].map(function(c){return '<button data-act="cat" data-v="'+c[0]+'" aria-pressed="'+(S.cat===c[0])+'">'+c[1]+'</button>';}).join('')+'</div>';
+    CAT[S.cat].forEach(function(x){
+      var on=S.cat==='furn'?S.furn[x.id]:(S.cat==='wall'?S.wall===x.id:S.floor===x.id);
+      h+='<button class="card prod'+(on?' sel':'')+'" data-act="pick" data-v="'+x.id+'" aria-pressed="'+on+'">'
+        +'<span class="sw" style="background:'+x.c+'"></span><span><b>'+esc(x.n)+'</b><br><span class="small muted">'+esc(x.p)+' · '+stars(x.r)+' · '+x.note+'</span></span>'
+        +'<b class="num">'+money(x.pr)+(x.pack?'<span class="small muted">/м²</span>':'')+'</b></button>';
+    });
+  }
+  if(st===3){
+    h+='<div class="seg" role="group" aria-label="Режим просмотра"><button data-act="ba" data-v="before" aria-pressed="'+(S.ba==='before')+'">До</button><button data-act="ba" data-v="after" aria-pressed="'+(S.ba==='after')+'">После</button><button data-act="ba" data-v="walk" aria-pressed="'+(S.ba==='walk')+'">Прогулка 3D</button></div>';
+    if(S.ba==='walk'){
+      if(window.THREE){
+        h+='<div class="room"><canvas id="walk" tabindex="0" aria-label="3D-прогулка по комнате: перетащите, чтобы осмотреться"></canvas><div class="tip" id="walkTip" hidden></div></div>'
+         +'<div class="hold" role="group" aria-label="Движение"><button class="btn" data-walkctl="hold" data-k="turnL" aria-label="Повернуть влево">⟲</button><button class="btn" data-walkctl="hold" data-k="fwd">Вперёд</button><button class="btn" data-walkctl="hold" data-k="back">Назад</button><button class="btn" data-walkctl="hold" data-k="turnR" aria-label="Повернуть вправо">⟳</button></div>'
+         +'<div class="seg" role="group" aria-label="Время суток"><button data-walkctl="tod" data-v="day" aria-pressed="true">День</button><button data-walkctl="tod" data-v="eve" aria-pressed="false">Вечер</button></div>'
+         +'<div class="small muted">Перетащите, чтобы осмотреться; клавиши W A S D и стрелки двигают камеру. Коснитесь предмета, чтобы увидеть карточку товара. Это упрощённая сцена: в продукте освещение запекается на сервере по моделям и материалам партнёров.</div>';
+      } else {
+        h+='<div class="room">'+roomSVG(true,walkVB())+'</div>'
+         +'<div class="dims" style="grid-template-columns:repeat(4,1fr)"><button class="btn" data-act="walk" data-v="l" aria-label="Повернуть влево">←</button><button class="btn" data-act="walk" data-v="f" aria-label="Шаг вперёд">Вперёд</button><button class="btn" data-act="walk" data-v="b" aria-label="Шаг назад">Назад</button><button class="btn" data-act="walk" data-v="r" aria-label="Повернуть вправо">→</button></div>'
+         +'<div class="small muted">Не удалось загрузить 3D-библиотеку, показан упрощённый режим.</div>';
+      }
+    } else {
+      h+='<div class="room">'+roomSVG(S.ba==='after')+'</div>'
+       +'<div class="row"><span class="badge warn">быстрый эскиз</span><button class="btn" data-act="photo">Фотореалистичный кадр</button></div>'
+       +'<div class="small muted">Цвет и фактура на экране могут отличаться от реального товара.</div>';
+    }
+    var items=[S.wall,S.floor].concat(S.furn.sofa?['sofa']:[],S.furn.lamp?['lamp']:[]);
+    items.forEach(function(id){var x=by(id);h+='<div class="row card"><span><b>'+esc(x.n)+'</b><br><span class="small muted">'+esc(x.p)+'</span></span><span class="small">'+stars(x.r)+'</span></div>';});
+    h+='<div class="card"><div class="row"><b>Экспорт 3D-модели</b><span class="badge">после утверждения</span></div><div class="small muted" style="margin:4px 0 8px">Вся сцена: комната, оставленные и новые предметы, текстуры PBR до 4K, реальные габариты в метрах. FBX и OBJ открываются в 3ds Max.</div><div class="chips">'
+     +['GLB','FBX','OBJ + MTL','USDZ'].map(function(f){return '<button class="chip" data-act="export" data-v="'+f+'">'+f+'</button>';}).join('')+'</div></div>';
+  }
+  if(st===4){
+    var m=matsAll(), c=activeCrew(), wk=works(c), wt=wk.reduce(function(q,x){return q+x.sum;},0), tot=m.reduce(function(q,x){return q+x.sum;},0);
+    h+='<div class="seg" role="group" aria-label="Раздел сметы"><button data-act="tab" data-v="mat" aria-pressed="'+(S.tab!=='shop')+'">Разбивка</button><button data-act="tab" data-v="shop" aria-pressed="'+(S.tab==='shop')+'">Где купить</button></div>';
+    if(S.tab!=='shop'){
+      h+='<div class="card small"><div class="row"><b>Электрика</b><span class="muted">уточните</span></div><div class="chips" style="margin-top:6px" role="group" aria-label="Электрика">'
+       +[['keep','Оставить как есть'],['new','Новая разводка'],['proj','Новая, по проекту']].map(function(x){return '<button class="chip" data-act="elec" data-v="'+x[0]+'" aria-pressed="'+(S.elec===x[0])+'">'+x[1]+'</button>';}).join('')+'</div>'
+       +'<div class="row" style="margin-top:8px"><b>Выравнивание стен</b></div><div class="chips" style="margin-top:6px" role="group" aria-label="Выравнивание">'
+       +[['none','Не нужно'],['putty','Шпаклёвка'],['plaster','Штукатурка + шпаклёвка']].map(function(x){return '<button class="chip" data-act="align" data-v="'+x[0]+'" aria-pressed="'+(S.align===x[0])+'">'+x[1]+'</button>';}).join('')+'</div></div>';
+      SECS.forEach(function(sc){
+        var mm=m.filter(function(x){return x.s===sc[0];}), ww=wk.filter(function(x){return x.s===sc[0];});
+        if(!mm.length&&!ww.length){ if(sc[0]==='elec'&&S.elec==='keep') h+='<div class="card small"><b>Электрика</b><div class="muted">Проводка остаётся как есть: материалы и работы не нужны.</div></div>'; return; }
+        var sm=mm.reduce(function(q,x){return q+x.sum;},0), sw=ww.reduce(function(q,x){return q+x.sum;},0);
+        h+='<div class="card"><div class="row"><b>'+sc[1]+'</b><b class="num">'+money(sm+sw)+'</b></div>';
+        if(mm.length){
+          h+='<div class="small muted" style="margin:8px 0 2px">Материалы: что и сколько купить</div><div class="tbl"><table><tbody>';
+          mm.forEach(function(x){h+='<tr'+(x.skip?' style="opacity:.45"':'')+'><td><b>'+esc(x.n)+'</b><br><span class="small muted">'+esc(x.shop)+' · '+x.u+' '+money2(x.pr)+'<br>'+esc(x.how)+(x.url?'<br><a href="#" data-act="link" data-v="'+esc(x.url)+'">Открыть у поставщика ↗</a>':'')+'</span></td><td class="r num">'+x.q+'</td><td class="r num">'+money(x.sum)+'</td></tr>';});
+          h+='</tbody></table></div>';
+        }
+        if(ww.length){
+          h+='<div class="small muted" style="margin:8px 0 2px">Работы · бригада «'+esc(c.n)+'»</div><div class="tbl"><table><tbody>';
+          ww.forEach(function(x){h+='<tr><td><b>'+esc(x.n)+'</b><br><span class="small muted">'+money2(x.pr)+' за '+x.u+'</span></td><td class="r num">'+x.q.toFixed(x.u==='м²'||x.u==='м'?1:0)+' '+x.u+'</td><td class="r num">'+money(x.sum)+'</td></tr>';});
+          h+='</tbody></table></div>';
+        }
+        h+='<div class="row small muted" style="margin-top:6px"><span>материалы '+money(sm)+'</span><span>работы '+money(sw)+'</span></div></div>';
+      });
+    } else {
+      var shops={};m.forEach(function(x){(shops[x.shop]=shops[x.shop]||{n:0,sum:0,all:0}).n++;shops[x.shop].all+=x.q*x.pr;shops[x.shop].sum+=x.sum;});
+      var nonf=materials().filter(function(x){return x.s!=='furn';}).length;
+      h+='<div class="card small"><b>Как покупаем</b><div class="chips" style="margin-top:6px" role="group" aria-label="Способ покупки">'
+       +'<button class="chip" data-act="buy" data-v="best" aria-pressed="'+(S.buy==='best')+'">Лучшие цены у партнёров</button><button class="chip" data-act="buy" data-v="one" aria-pressed="'+(S.buy==='one')+'">Всё в одном магазине</button></div>'
+       +'<div class="muted" style="margin-top:6px">'+(S.buy==='best'?'Каждая позиция берётся у партнёра с лучшей ценой, магазинов несколько, доставка от каждого отдельно.':'Все отделочные материалы закрывает один магазин-партнёр «ОбъектСтрой»: одна доставка, цены в среднем на 5% выше. Мебель остаётся у своих поставщиков.')+'</div></div>'
+       +'<div class="small muted">Отметьте магазины, где покупать не нужно (материал уже есть или купите сами): он уйдёт из суммы.</div>';
+      Object.keys(shops).forEach(function(k){var q=shops[k],off=!!S.skip[k];
+        h+='<div class="card" style="'+(off?'opacity:.6':'')+'"><div class="row"><b>'+esc(k)+'</b><b class="num">'+money(q.sum)+'</b></div><div class="small muted">'+q.n+' позиций'+(S.buy==='one'&&k==='ОбъектСтрой'?' из '+nonf+' отделочных (закрывает все)':'')+' · '+(off?'не покупаем здесь':'покупаем здесь')+'</div>'
+         +'<div class="chips" style="margin-top:8px"><button class="chip" data-act="skipshop" data-v="'+esc(k)+'" aria-pressed="'+off+'">'+(off?'Вернуть в смету':'Не покупать здесь')+'</button><button class="chip" data-act="link" data-v="'+esc(k.toLowerCase())+'.example">Открыть магазин ↗</button></div></div>';
+      });
+    }
+    h+='<div class="card small"><div class="row"><span class="muted">Материалы</span><span class="num">'+money(tot)+'</span></div><div class="row"><span class="muted">Работы · «'+esc(c.n)+'»</span><span class="num">'+money(wt)+'</span></div>'
+     +'<div class="row" style="border-top:1px solid var(--line);margin-top:6px;padding-top:8px"><b>Всего</b><b class="num">'+money(tot+wt)+'</b></div><div class="muted" style="margin-top:6px">Цены действуют до 20 ноября 2026, затем обновятся по фидам партнёров. Исполнителя можно сменить на следующем шаге, работы пересчитаются по его прайсу.</div></div>';
+  }
+  if(st===5){
+    h+='<div class="row"><b>Бригады для этого объёма</b><span class="small muted">'+geo().floor.toFixed(1)+' м² пола</span></div>'
+     +'<div class="seg" role="group" aria-label="Сортировка"><button data-act="sort" data-v="price" aria-pressed="'+(S.sort==='price')+'">Дешевле</button><button data-act="sort" data-v="rating" aria-pressed="'+(S.sort==='rating')+'">По рейтингу</button></div>';
+    crewsSorted().forEach(function(c,i){
+      var on=activeCrew().id===c.id;
+      h+='<button class="card'+(on?' sel':'')+'" style="text-align:left;width:100%" data-act="crew" data-v="'+c.id+'" aria-pressed="'+on+'">'
+        +'<div class="row"><b>'+esc(c.n)+'</b><b class="num">'+money(worksTotal(c))+'</b></div>'
+        +'<div class="small muted">'+stars(c.r)+' · '+c.rev+' отзывов · начало через '+c.days+' дн.'+(i===0&&S.sort==='price'?' <span class="badge">выгоднее всех</span>':'')+'</div></button>';
+    });
+    if(S.sent){var cc=CREWS.filter(function(c){return c.id===S.sent;})[0];h+='<div class="card sel"><b>Заявка отправлена</b><div class="small muted">Бригада «'+esc(cc.n)+'» получила визуализацию, смету и объёмы работ. Ответ придёт в приложение.</div></div>';}
+  }
+  if(S.toast) h+='<div class="toast" role="status">'+esc(S.toast)+'</div>';
+  return h;
+}
+function foot(){
+  var st=S.step, next='Далее', dis=false;
+  if(st===0) next='Снять комнату';
+  if(st===1){next='К выбору';dis=S.scan!==2;}
+  if(st===2) next='Показать результат';
+  if(st===3) next='Утвердить и получить смету';
+  if(st===4) next='Подобрать бригады';
+  if(st===5) next=S.sent?'Начать заново':'Отправить заявку';
+  return (st>0?'<button class="btn" data-act="back">Назад</button>':'')+'<button class="btn primary grow" data-act="next"'+(dis?' disabled':'')+'>'+next+'</button>';
+}
+function userView(){
+  var n=NOTES[S.step], dots='';
+  STEPS.forEach(function(x,i){dots+='<button class="dot'+(i<S.step?' done':'')+'" data-act="go" data-v="'+i+'" aria-label="Шаг '+(i+1)+': '+x+'"'+(i===S.step?' aria-current="step"':'')+'></button>';});
+  var flow=STEPS.map(function(x,i){return '<li class="'+(i===S.step?'on':'')+'"><button data-act="go" data-v="'+i+'"><span class="n">'+(i+1)+'</span><span><b>'+x+'</b></span></button></li>';}).join('');
+  return '<div class="stage"><section class="phone" aria-label="Приложение заказчика"><div class="p-head"><h2>'+STEPS[S.step]+'</h2><div class="steps">'+dots+'</div></div>'
+   +'<div class="screen" id="screen">'+screen()+'</div><div class="p-foot" id="foot">'+foot()+'</div></section>'
+   +'<aside class="side"><div class="card"><h2>'+n.t+'</h2><p class="lead" style="margin-bottom:12px">'+n.x+'</p><ol class="flow">'+flow+'</ol></div>'
+   +(n.pay?'<div class="card pay"><h3>Где зарабатывает платформа</h3><div>'+n.pay+'</div></div>':'')+'</aside></div>';
+}
+
+/* partner cabinet */
+var TIERS=[{n:'Базовый',pr:49,lim:'до 200 товаров',slots:'без рекламных мест',cm:.08},{n:'Расширенный',pr:149,lim:'до 2 000 товаров',slots:'2 рекламных места',cm:.06},{n:'Премиум',pr:399,lim:'без лимита',slots:'6 рекламных мест',cm:.05}];
+function partnerView(){
+  var t=TIERS[S.tier], sales=38400, com=sales*t.cm, ads=S.ads, tot=t.pr+com+ads;
+  var h='<div class="grid" style="gap:20px"><div class="row" style="align-items:center;flex-wrap:wrap"><div><h2 style="font-size:18px">ПолМаркет</h2><div class="muted small">Поставщик напольных покрытий · статус «Проверенный партнёр»</div></div><span class="badge">тариф «'+t.n+'» активен</span></div>';
+  h+='<div class="grid g3"><div class="card kpi"><span class="muted small">Показы в визуализациях, 30 дней</span><b class="num">12 480</b></div><div class="card kpi"><span class="muted small">Добавлено в смету</span><b class="num">1 126</b></div><div class="card kpi"><span class="muted small">Покупки по сметам</span><b class="num">214</b></div><div class="card kpi"><span class="muted small">Выручка поставщика</span><b class="num">'+money(sales)+'</b></div></div>';
+  h+='<div><h3 class="sec-title">Тариф</h3><div class="grid g3">';
+  TIERS.forEach(function(x,i){h+='<button class="tier" data-act="tier" data-v="'+i+'" aria-pressed="'+(S.tier===i)+'"><b>'+x.n+'</b><span class="num" style="font-family:var(--font-display)">'+money(x.pr)+' <span class="small muted">/мес</span></span><span class="small muted">'+x.lim+'<br>'+x.slots+'<br>комиссия '+Math.round(x.cm*100)+'%</span></button>';});
+  h+='</div></div>';
+  h+='<div class="grid g2"><div class="card"><h3 class="sec-title">Реклама «Товар в фокусе»</h3><label for="ads" class="small muted">Бюджет на месяц: <b class="num" id="adv" style="color:var(--ink)">'+money(ads)+'</b></label><input id="ads" type="range" min="0" max="1000" step="50" value="'+ads+'" data-ads><div class="small muted" id="adshow">Примерно '+Math.round(ads*34).toLocaleString('ru-RU')+' дополнительных показов при выборе пола.</div></div>'
+   +'<div class="card"><h3 class="sec-title">Платежи платформе за месяц</h3><div class="row"><span class="muted">Подписка</span><span class="num">'+money(t.pr)+'</span></div><div class="row"><span class="muted">Комиссия '+Math.round(t.cm*100)+'% с '+money(sales)+'</span><span class="num">'+money(com)+'</span></div><div class="row"><span class="muted">Реклама</span><span class="num" id="adsum">'+money(ads)+'</span></div><div class="row" style="border-top:1px solid var(--line);margin-top:6px;padding-top:8px"><b>Итого</b><b class="num" id="totsum">'+money(tot)+'</b></div></div></div>';
+  h+='<div class="grid g2"><div class="card"><h3 class="sec-title">Рейтинг '+stars(4.8)+'</h3>';
+  [['Соответствие описанию',4.9],['Срок доставки',4.6],['Возвраты и отказы',4.8],['Скорость ответа',4.7]].forEach(function(x){h+='<div class="row small"><span class="muted">'+x[0]+'</span><span class="num">'+x[1].toFixed(1).replace('.',',')+'</span></div><div class="bar" style="margin:4px 0 8px"><i style="width:'+(x[1]/5*100)+'%"></i></div>';});
+  h+='<div class="small muted">Рейтинг считается только по подтверждённым сделкам: 214 за 30 дней.</div></div><div class="card"><h3 class="sec-title">Последние отзывы</h3>'
+   +'<div style="margin-bottom:10px"><div class="small">'+stars(5)+' · Ламинат «Дуб светлый»</div><div class="small muted">Привезли за два дня, количество из сметы сошлось до упаковки.</div></div>'
+   +'<div style="margin-bottom:10px"><div class="small">'+stars(4)+' · Подложка под ламинат</div><div class="small muted">Всё хорошо, одна упаковка пришла с повреждённой плёнкой, заменили.</div></div>'
+   +'<button class="btn small" disabled>Ответить на отзыв</button></div></div>';
+  h+='<div class="card"><h3 class="sec-title">Товары и спрос</h3><div class="tbl"><table><thead><tr><th>Артикул</th><th>Товар</th><th class="r">Показы</th><th class="r">В смету</th><th class="r">Покупки</th><th>Фид</th></tr></thead><tbody>'
+   +'<tr><td>PL-1033</td><td>Ламинат «Дуб светлый»</td><td class="r num">5 420</td><td class="r num">512</td><td class="r num">101</td><td><span class="badge">обновлён сегодня</span></td></tr>'
+   +'<tr><td>PL-1041</td><td>Ламинат «Орех тёмный»</td><td class="r num">3 870</td><td class="r num">344</td><td class="r num">66</td><td><span class="badge">обновлён сегодня</span></td></tr>'
+   +'<tr><td>PL-2210</td><td>Подложка 10 м²</td><td class="r num">1 960</td><td class="r num">189</td><td class="r num">34</td><td><span class="badge warn">нет остатка</span></td></tr>'
+   +'<tr><td>PL-3005</td><td>Плинтус 2,5 м</td><td class="r num">1 230</td><td class="r num">81</td><td class="r num">13</td><td><span class="badge">обновлён сегодня</span></td></tr></tbody></table></div></div></div>';
+  return h;
+}
+
+
+/* 3D walkthrough (prototype scene) */
+var W3={raf:0,yaw:0,pitch:0,x:null,z:null,keys:{},tod:'day',ren:null,tipT:0,off:null};
+function rnd(seed){var q=seed;return function(){q=(q*9301+49297)%233280;return q/233280;};}
+function mkTex(draw,w,h){var c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);var t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t;}
+function floorTex(f){
+  return mkTex(function(g,w,h){
+    var r=rnd(7);g.fillStyle=f.c;g.fillRect(0,0,w,h);
+    if(f.k==='tile'){
+      for(var a=0;a<4;a++)for(var b=0;b<4;b++){g.fillStyle='rgba(0,0,0,'+(r()*0.08)+')';g.fillRect(a*w/4,b*h/4,w/4,h/4);}
+      g.strokeStyle='rgba(255,255,255,.5)';g.lineWidth=3;
+      for(var i=0;i<=4;i++){g.beginPath();g.moveTo(i*w/4,0);g.lineTo(i*w/4,h);g.stroke();g.beginPath();g.moveTo(0,i*h/4);g.lineTo(w,i*h/4);g.stroke();}
+    } else {
+      var rows=12,ph=h/rows;
+      for(var y=0;y<rows;y++){
+        var off=r()*w/2;
+        for(var x=-1;x<3;x++){var px=x*w/2+off;g.fillStyle='rgba('+(r()<.5?'0,0,0':'255,255,255')+','+(r()*0.1)+')';g.fillRect(px,y*ph,w/2,ph);g.fillStyle='rgba(0,0,0,.35)';g.fillRect(px,y*ph,2,ph);}
+        g.fillStyle='rgba(0,0,0,.3)';g.fillRect(0,y*ph,w,2);
+      }
+    }
+  },512,512);
+}
+function wallTex(){
+  return mkTex(function(g,w,h){g.fillStyle='#fff';g.fillRect(0,0,w,h);g.fillStyle='rgba(0,0,0,.07)';for(var x=0;x<w;x+=32)g.fillRect(x,0,10,h);},256,256);
+}
+function mk(geo,color,x,y,z,rough){var m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:color,roughness:rough==null?.8:rough,metalness:0}));m.position.set(x,y,z);return m;}
+function tag(o,id){o.traverse(function(n){n.userData.pid=id;});}
+function stopWalk(){
+  if(W3.raf){cancelAnimationFrame(W3.raf);W3.raf=0;}
+  if(W3.ren){try{W3.ren.dispose();if(W3.ren.forceContextLoss)W3.ren.forceContextLoss();}catch(e){}W3.ren=null;}
+}
+function startWalk(){
+  var cv=document.getElementById('walk');
+  if(!cv||!window.THREE) return;
+  var d=S.dim,L=d.L,Wd=d.W,H=d.H,w=by(S.wall),f=by(S.floor),ren;
+  try{ren=new THREE.WebGLRenderer({canvas:cv,antialias:true});}catch(e){
+    cv.parentNode.innerHTML='<div class="card small" style="margin:0">Этот браузер не поддерживает 3D-графику (WebGL). В продукте прогулка открывается в приложении.</div>';return;}
+  W3.ren=ren;
+  var cw=cv.parentNode.clientWidth||340,ch=Math.round(cw*0.75);
+  ren.setPixelRatio(Math.min(window.devicePixelRatio||1,2));ren.setSize(cw,ch,false);
+  cv.style.height=ch+'px';
+  var sc=new THREE.Scene();sc.background=new THREE.Color(0x1a1815);
+  var cam=new THREE.PerspectiveCamera(72,cw/ch,0.05,50);cam.rotation.order='YXZ';
+  if(W3.x==null){W3.x=-L/2+1.3;W3.z=Wd/2-0.7;W3.yaw=-0.5;W3.pitch=-0.05;}
+  W3.x=Math.max(-L/2+0.3,Math.min(L/2-0.3,W3.x));W3.z=Math.max(-Wd/2+0.3,Math.min(Wd/2-0.3,W3.z));
+  // surfaces
+  var ft=floorTex(f);ft.repeat.set(L/2.4,Wd/2.4);
+  var fl=new THREE.Mesh(new THREE.PlaneGeometry(L,Wd),new THREE.MeshStandardMaterial({map:ft,roughness:f.k==='tile'?.35:.55}));
+  fl.rotation.x=-Math.PI/2;fl.userData.pid=f.id;sc.add(fl);
+  var ce=new THREE.Mesh(new THREE.PlaneGeometry(L,Wd),new THREE.MeshStandardMaterial({color:0xf3f1ec,roughness:1}));
+  ce.rotation.x=Math.PI/2;ce.position.y=H;sc.add(ce);
+  var wm=function(){var m=new THREE.MeshStandardMaterial({color:w.c,roughness:.92});if(w.k==='paper'){var t=wallTex();t.repeat.set(6,1);m.map=t;}return m;};
+  var walls=[[L,0,-Wd/2,0],[L,0,Wd/2,Math.PI],[Wd,-L/2,0,Math.PI/2],[Wd,L/2,0,-Math.PI/2]];
+  walls.forEach(function(a){var m=new THREE.Mesh(new THREE.PlaneGeometry(a[0],H),wm());m.position.set(a[1],H/2,a[2]);m.rotation.y=a[3];m.userData.pid=w.id;sc.add(m);});
+  // baseboards
+  var bb=0xf1f0ec;
+  [[L,.08,.02,0,.04,-Wd/2+.01],[L,.08,.02,0,.04,Wd/2-.01],[.02,.08,Wd,-L/2+.01,.04,0],[.02,.08,Wd,L/2-.01,.04,0]].forEach(function(b){sc.add(mk(new THREE.BoxGeometry(b[0],b[1],b[2]),bb,b[3],b[4],b[5],.6));});
+  // window on the back wall
+  var win=mk(new THREE.PlaneGeometry(1.4,1.2),0xd7ecf7,0,H*0.55,-Wd/2+0.012,1);win.material=new THREE.MeshBasicMaterial({color:0xd7ecf7});sc.add(win);
+  var frame=0xf4f4f2;
+  [[1.5,.06,0,.6],[1.5,.06,0,-.6],[.06,1.2,.72,0],[.06,1.2,-.72,0],[.04,1.2,0,0],[1.4,.04,0,0]].forEach(function(b){sc.add(mk(new THREE.BoxGeometry(b[0],b[1],.05),frame,b[2],H*0.55+b[3],-Wd/2+.03,.6));});
+  // door on the left wall
+  sc.add(mk(new THREE.BoxGeometry(.04,2.05,.9),0xe6e1d6,-L/2+.02,1.025,Wd/2-.9,.7));
+  sc.add(mk(new THREE.SphereGeometry(.035,12,8),0x9a9a9a,-L/2+.06,1.0,Wd/2-.55,.3));
+  // furniture (collision boxes: x0,x1,z0,z1)
+  var blocks=[],LY=curLayout();
+  ['bed','wardrobe','kitchen'].forEach(function(id){
+    if(S.keep[id]!=='keep')return;
+    var r=exRect(id),bw=r.x1-r.x0,bd=r.z1-r.z0,cx=(r.x0+r.x1)/2,cz=(r.z0+r.z1)/2,hh=EX[id].h,g=new THREE.Group();
+    if(id==='bed'){
+      g.add(mk(new THREE.BoxGeometry(bw,.3,bd),0x8d7c6b,0,.15,0,.8));
+      g.add(mk(new THREE.BoxGeometry(bw-.1,.2,bd-.1),0xf1eee8,0,.4,0,.95));
+      g.add(mk(new THREE.BoxGeometry(.12,.8,bd),0x7a6a5a,-bw/2+.06,.55,0,.8));
+      g.add(mk(new THREE.BoxGeometry(.4,.1,.6),0xffffff,-bw/2+.4,.55,-.35,.95));
+      g.add(mk(new THREE.BoxGeometry(.4,.1,.6),0xffffff,-bw/2+.4,.55,.35,.95));
+    } else if(id==='wardrobe'){
+      g.add(mk(new THREE.BoxGeometry(bw,hh,bd),0xcfc6b6,0,hh/2,0,.7));
+      g.add(mk(new THREE.BoxGeometry(.02,hh-.1,bd+.01),0x8f877a,-bw/2,hh/2,0,.7));
+      g.add(mk(new THREE.BoxGeometry(bw+.01,hh-.1,.02),0x8f877a,0,hh/2,-bd/2+0,.7));
+    } else {
+      g.add(mk(new THREE.BoxGeometry(bw,.85,bd),0xb9b2a4,0,.425,0,.7));
+      g.add(mk(new THREE.BoxGeometry(bw+.02,.05,bd+.02),0x4a4a4a,0,.875,0,.4));
+      g.add(mk(new THREE.BoxGeometry(bw-.1,.6,.3),0xd9d5cc,0,1.55,-bd/2+.3,.7));
+    }
+    g.position.set(cx,0,cz);tag(g,'ex:'+id);sc.add(g);
+    blocks.push([r.x0,r.x1,r.z0,r.z1]);
+  });
+  if(S.furn.sofa&&LY&&LY.sofa){
+    var sg=new THREE.Group(),c1=parseInt(curSofaC().slice(1),16),c2=parseInt(shade(curSofaC(),12).slice(1),16),c3=parseInt(shade(curSofaC(),-14).slice(1),16);
+    var b1=mk(new THREE.BoxGeometry(2.1,.4,.95),c1,0,.3,0,.9),b2=mk(new THREE.BoxGeometry(2.1,.5,.2),c1,0,.7,-.38,.9);
+    var a1=mk(new THREE.BoxGeometry(.2,.3,.95),c3,-1.05,.45,0,.9),a2=mk(new THREE.BoxGeometry(.2,.3,.95),c3,1.05,.45,0,.9);
+    var s1=mk(new THREE.BoxGeometry(.9,.14,.75),c2,-.48,.53,.08,.9),s2=mk(new THREE.BoxGeometry(.9,.14,.75),c2,.48,.53,.08,.9);
+    var lg1=mk(new THREE.BoxGeometry(.06,.1,.06),0x222222,-.95,.05,.4,.5),lg2=mk(new THREE.BoxGeometry(.06,.1,.06),0x222222,.95,.05,.4,.5);
+    [b1,b2,a1,a2,s1,s2,lg1,lg2].forEach(function(m){sg.add(m);});
+    sg.position.set(LY.sofa.x,0,LY.sofa.z);sg.rotation.y=LY.sofa.rot;tag(sg,'sofa');sc.add(sg);
+    var sh=new THREE.Mesh(new THREE.PlaneGeometry(LY.sofa.r.x1-LY.sofa.r.x0+.4,LY.sofa.r.z1-LY.sofa.r.z0+.3),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.18}));sh.rotation.x=-Math.PI/2;sh.position.set(LY.sofa.x,.01,LY.sofa.z);sc.add(sh);
+    blocks.push([LY.sofa.r.x0,LY.sofa.r.x1,LY.sofa.r.z0,LY.sofa.r.z1]);
+  }
+  var lampLight=null;
+  if(S.furn.lamp&&LY&&LY.lamp){
+    var lg=new THREE.Group(),lx=LY.lamp.x,lz=LY.lamp.z;
+    lg.add(mk(new THREE.CylinderGeometry(.16,.18,.03,24),0x2b2b2b,0,.015,0,.4));
+    lg.add(mk(new THREE.CylinderGeometry(.012,.012,1.55,10),0x2b2b2b,0,.8,0,.4));
+    var shade=new THREE.Mesh(new THREE.CylinderGeometry(.13,.24,.3,28,1,true),new THREE.MeshStandardMaterial({color:0xd9a441,emissive:0x8a5f10,emissiveIntensity:.7,side:THREE.DoubleSide,roughness:.9}));shade.position.y=1.65;lg.add(shade);
+    lg.position.set(lx,0,lz);tag(lg,'lamp');sc.add(lg);
+    lampLight=new THREE.PointLight(0xffd9a0,.35,5);lampLight.position.set(lx,1.6,lz+.05);sc.add(lampLight);
+    blocks.push([lx-.3,lx+.3,lz-.3,lz+.3]);
+  }
+  // lights
+  var hemi=new THREE.HemisphereLight(0xffffff,0xb8b2a6,.85);sc.add(hemi);
+  var sun=new THREE.PointLight(0xfff0d6,.55,L*2.2);sun.position.set(0,H*.62,-Wd/2+.5);sc.add(sun);
+  var fill=new THREE.PointLight(0xffffff,.25,L*2.5);fill.position.set(0,H-.3,0);sc.add(fill);
+  function applyTod(){
+    var eve=W3.tod==='eve';
+    hemi.intensity=eve?.22:.85;sun.intensity=eve?.05:.55;fill.intensity=eve?.12:.25;
+    win.material.color.set(eve?0x2a3a52:0xd7ecf7);
+    if(lampLight)lampLight.intensity=eve?1.1:.35;
+    var bs=document.querySelectorAll('[data-walkctl="tod"]');
+    for(var i=0;i<bs.length;i++)bs[i].setAttribute('aria-pressed',String(bs[i].getAttribute('data-v')===W3.tod));
+  }
+  applyTod();W3.applyTod=applyTod;
+  function blocked(x,z){for(var i=0;i<blocks.length;i++){var b=blocks[i];if(x>b[0]-.2&&x<b[1]+.2&&z>b[2]-.2&&z<b[3]+.2)return true;}return false;}
+  // input
+  var drag=null;
+  cv.onpointerdown=function(e){drag={x:e.clientX,y:e.clientY,m:0};try{cv.setPointerCapture(e.pointerId);}catch(x){}};
+  cv.onpointermove=function(e){if(!drag)return;var dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;drag.m+=Math.abs(dx)+Math.abs(dy);W3.yaw+=dx*.006;W3.pitch=Math.max(-1,Math.min(1,W3.pitch+dy*.004));};
+  cv.onpointerup=function(e){
+    var moved=drag?drag.m:99;drag=null;if(moved>6)return;
+    var r=cv.getBoundingClientRect(),m=new THREE.Vector2(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1);
+    var rc=new THREE.Raycaster();rc.setFromCamera(m,cam);var hit=rc.intersectObjects(sc.children,true)[0];
+    var tip=document.getElementById('walkTip');if(!tip)return;
+    var pid=null;if(hit){var o=hit.object;while(o&&!o.userData.pid)o=o.parent;if(o)pid=o.userData.pid;}
+    if(pid&&String(pid).indexOf('ex:')===0){var ee=EX[String(pid).slice(3)];tip.innerHTML='<b>'+esc(ee.n)+'</b><br><span class="muted">Оставлен на месте, модель из скана</span><br><span class="small">В смету не входит, но учитывается при расстановке.</span>';tip.hidden=false;clearTimeout(W3.tipT);W3.tipT=setTimeout(function(){tip.hidden=true;},5000);return;}
+    var x=pid&&by(pid);
+    if(!x){tip.hidden=true;return;}
+    tip.innerHTML='<b>'+esc(x.n)+'</b><br><span class="muted">'+esc(x.p)+' · '+stars(x.r)+' · '+money(x.pr)+(x.pack?'/м²':'')+'</span><br><span class="small">Позиция уже в смете. Партнёр увидит это как «показ в прогулке».</span>';
+    tip.hidden=false;clearTimeout(W3.tipT);W3.tipT=setTimeout(function(){tip.hidden=true;},5000);
+  };
+  var last=performance.now();
+  function tick(now){
+    if(!document.body.contains(cv)){stopWalk();return;}
+    var dt=Math.min(.05,(now-last)/1000);last=now;
+    var k=W3.keys,mv=((k.fwd||k.KeyW||k.ArrowUp)?1:0)-((k.back||k.KeyS||k.ArrowDown)?1:0),st=(k.KeyD?1:0)-(k.KeyA?1:0),tr=((k.turnL||k.ArrowLeft)?1:0)-((k.turnR||k.ArrowRight)?1:0);
+    W3.yaw+=tr*1.8*dt;
+    if(mv||st){
+      var sp=1.5*dt,fx=-Math.sin(W3.yaw),fz=-Math.cos(W3.yaw),rx=Math.cos(W3.yaw),rz=-Math.sin(W3.yaw);
+      var nx=W3.x+(fx*mv+rx*st)*sp,nz=W3.z+(fz*mv+rz*st)*sp;
+      nx=Math.max(-L/2+.3,Math.min(L/2-.3,nx));nz=Math.max(-Wd/2+.3,Math.min(Wd/2-.3,nz));
+      if(!blocked(nx,W3.z))W3.x=nx;if(!blocked(W3.x,nz))W3.z=nz;
+    }
+    cam.position.set(W3.x,1.6,W3.z);cam.rotation.set(W3.pitch,W3.yaw,0);
+    ren.render(sc,cam);W3.raf=requestAnimationFrame(tick);
+  }
+  W3.raf=requestAnimationFrame(tick);
+}
+document.addEventListener('keydown',function(e){if(!W3.ren||/INPUT|TEXTAREA/.test((e.target||{}).tagName||''))return;if(/^(KeyW|KeyA|KeyS|KeyD|Arrow(Up|Down|Left|Right))$/.test(e.code)){W3.keys[e.code]=true;e.preventDefault();}});
+document.addEventListener('keyup',function(e){delete W3.keys[e.code];});
+document.addEventListener('pointerdown',function(e){var b=e.target.closest&&e.target.closest('[data-walkctl="hold"]');if(b){W3.keys[b.getAttribute('data-k')]=true;e.preventDefault();}});
+['pointerup','pointercancel'].forEach(function(n){document.addEventListener(n,function(){['turnL','turnR','fwd','back'].forEach(function(k){delete W3.keys[k];});});});
+document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-walkctl="tod"]');if(b){W3.tod=b.getAttribute('data-v');if(W3.applyTod)W3.applyTod();}});
+
+function render(){
+  stopWalk();
+  document.getElementById('app').innerHTML = S.mode==='user'?userView():partnerView();
+  startWalk();
+  document.getElementById('tab-user').setAttribute('aria-selected',S.mode==='user');
+  document.getElementById('tab-partner').setAttribute('aria-selected',S.mode==='partner');
+}
+function toast(t){S.toast=t;render();setTimeout(function(){S.toast='';if(S.mode==='user')render();},2600);}
+
+document.addEventListener('click',function(e){
+  var el=e.target.closest('[data-act]'); if(!el) return;
+  var a=el.getAttribute('data-act'), v=el.getAttribute('data-v');
+  if(a==='mode'){S.mode=v;render();return;}
+  if(a==='stage'){S.stage=v;}
+  if(a==='go'){S.step=+v;}
+  if(a==='back'){S.step=Math.max(0,S.step-1);}
+  if(a==='next'){
+    if(S.step===5&&S.sent){S.step=0;S.sent=null;S.crew=null;S.scan=0;}
+    else if(S.step===5){S.sent=activeCrew().id;}
+    else S.step=Math.min(5,S.step+1);
+  }
+  if(a==='scan'){S.scan=1;render();setTimeout(function(){S.scan=2;render();},1600);return;}
+  if(a==='cat'){S.cat=v;}
+  if(a==='pick'){
+    if(S.cat==='wall')S.wall=v; else if(S.cat==='floor')S.floor=v; else S.furn[v]=!S.furn[v];
+  }
+  if(a==='ba'){S.ba=v;}
+  if(a==='style'){S.style=v;fullRepair();S.lay=0;}
+  if(a==='keep'){var kv=v.split(':');S.keep[kv[0]]=kv[1];S.lay=0;}
+  if(a==='lay'){S.lay=+v;}
+  if(a==='align'){S.align=v;}
+  if(a==='elec'){S.elec=v;}
+  if(a==='buy'){S.buy=v;}
+  if(a==='skipshop'){S.skip[v]=!S.skip[v];}
+  if(a==='link'){e.preventDefault();toast('В продукте здесь откроется страница товара или магазина партнёра. В прототипе переход отключён.');return;}
+  if(a==='ref'){toast('В продукте вы загрузите картинку из Pinterest или фото чужой комнаты, а ИИ возьмёт из неё палитру и подберёт ближайшие товары из каталога. В прототипе загрузка отключена.');return;}
+  if(a==='export'){toast('Формат '+v+': в прототипе файл не создаётся. В продукте экспорт откроется после утверждения варианта, число экспортов в бесплатном тарифе ограничено.');return;}
+  if(a==='walk'){if(v==='l')S.walkP-=22;if(v==='r')S.walkP+=22;if(v==='f')S.walkZ=Math.min(1.8,S.walkZ+0.2);if(v==='b')S.walkZ=Math.max(1,S.walkZ-0.2);}
+  if(a==='photo'){toast('Кадр поставлен в очередь: готовность до 10 минут, придёт уведомление. В тарифе заказчика осталось 2 кадра на комнату.');return;}
+  if(a==='tab'){S.tab=v;}
+  if(a==='sort'){S.sort=v;}
+  if(a==='crew'){S.crew=v;}
+  if(a==='tier'){S.tier=+v;}
+  render();
+});
+document.addEventListener('input',function(e){
+  var t=e.target;
+  if(t.hasAttribute('data-dim')){
+    var k=t.getAttribute('data-dim'), x=parseFloat(t.value);
+    if(x>0){S.dim[k]=x;var g=geo();var f=document.getElementById('aF'),w=document.getElementById('aW');if(f)f.textContent=g.floor.toFixed(1)+' м²';if(w)w.textContent=g.wall.toFixed(1)+' м²';}
+  }
+  if(t.hasAttribute('data-ads')){
+    S.ads=+t.value; var tt=TIERS[S.tier], sum=tt.pr+38400*tt.cm+S.ads;
+    var set=function(id,txt){var n=document.getElementById(id);if(n)n.textContent=txt;};
+    set('adv',money(S.ads));set('adshow','Примерно '+Math.round(S.ads*34).toLocaleString('ru-RU')+' дополнительных показов при выборе пола.');
+    set('adsum',money(S.ads));set('totsum',money(sum));
+  }
+});
+render();
+})();
+</script>
